@@ -32,14 +32,16 @@ export default function TaskList({ refreshKey, onChange }: Props) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<"pending" | "done">("pending");
   const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState<string | null>(null);
 
-  useEffect(() => {
+  function reload() {
     setLoading(true);
     fetch(`/api/tasks?status=${filter}`)
       .then((r) => r.json())
       .then((d) => setTasks(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));
-  }, [filter, refreshKey]);
+  }
+  useEffect(reload, [filter, refreshKey]);
 
   async function toggleDone(task: Task) {
     const newStatus = task.status === "done" ? "pending" : "done";
@@ -49,6 +51,17 @@ export default function TaskList({ refreshKey, onChange }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
+    onChange?.();
+  }
+
+  async function saveEdit(id: string, patch: { title: string; priority: string; deadline: string | null }) {
+    await fetch(`/api/tasks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    setEditId(null);
+    reload();
     onChange?.();
   }
 
@@ -92,6 +105,9 @@ export default function TaskList({ refreshKey, onChange }: Props) {
           const tags = safeTags(task.tags);
           const overdue =
             task.deadline && task.status !== "done" && new Date(task.deadline) < new Date();
+          if (editId === task.id) {
+            return <EditTaskRow key={task.id} task={task} onSave={saveEdit} onCancel={() => setEditId(null)} />;
+          }
           return (
             <div
               key={task.id}
@@ -158,16 +174,72 @@ export default function TaskList({ refreshKey, onChange }: Props) {
                 </div>
               </div>
 
-              <button
-                onClick={() => deleteTask(task.id)}
-                className="text-[var(--text-faint)] opacity-0 group-hover:opacity-100 hover:text-rose-400 text-xs mt-0.5 flex-shrink-0 transition"
-                aria-label="删除"
-              >
-                ✕
-              </button>
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition shrink-0 mt-0.5">
+                <button onClick={() => setEditId(task.id)} className="text-[var(--text-faint)] hover:text-[var(--accent)] text-xs" title="编辑">✎</button>
+                <button onClick={() => deleteTask(task.id)} className="text-[var(--text-faint)] hover:text-rose-400 text-xs" title="删除">✕</button>
+              </div>
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+const PRIORITIES = ["low", "medium", "high", "urgent"];
+
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function EditTaskRow({
+  task,
+  onSave,
+  onCancel,
+}: {
+  task: Task;
+  onSave: (id: string, patch: { title: string; priority: string; deadline: string | null }) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(task.title);
+  const [priority, setPriority] = useState(task.priority);
+  const [deadline, setDeadline] = useState(task.deadline ? toLocalInput(task.deadline) : "");
+
+  return (
+    <div className="animate-rise rounded-xl border border-[var(--accent)]/40 bg-[var(--surface)] p-3 space-y-2">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="w-full bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-[13px] text-[var(--text)] outline-none focus:border-[var(--accent)]/50"
+        placeholder="任务标题"
+      />
+      <div className="flex gap-1.5">
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          className="bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-xs text-[var(--text-dim)] outline-none"
+        >
+          {PRIORITIES.map((p) => (
+            <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
+          ))}
+        </select>
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+          className="flex-1 bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-[11px] text-[var(--text-dim)] outline-none"
+        />
+      </div>
+      <div className="flex gap-1.5 justify-end">
+        <button onClick={onCancel} className="text-xs px-2.5 py-1 rounded-lg text-[var(--text-faint)] hover:bg-[var(--surface-hover)]">取消</button>
+        <button
+          onClick={() => onSave(task.id, { title, priority, deadline: deadline || null })}
+          className="text-xs px-2.5 py-1 rounded-lg bg-gradient-to-br from-[#4f8ff7] to-[#7c6cf6] text-white hover:brightness-110"
+        >
+          保存
+        </button>
       </div>
     </div>
   );

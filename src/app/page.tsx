@@ -119,7 +119,7 @@ export default function Home() {
 
       {/* Main area */}
       {view === "dashboard" ? (
-        <main className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1.45fr_1fr] gap-5">
+        <main className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[2fr_1fr_1fr] gap-5">
           {/* Chat */}
           <section className="glass rounded-2xl overflow-hidden flex flex-col min-h-0">
             <PanelHeader icon="💬" title="对话" subtitle="告诉我你做了什么，或安排任务" />
@@ -128,19 +128,19 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Right rail: tasks + timeline */}
-          <section className="grid grid-rows-2 gap-5 min-h-0">
-            <div className="glass rounded-2xl overflow-hidden flex flex-col min-h-0">
-              <PanelHeader icon="✅" title="任务" subtitle="待办与已完成" />
-              <div className="flex-1 min-h-0">
-                <TaskList refreshKey={refreshKey} onChange={refresh} />
-              </div>
+          {/* Tasks */}
+          <section className="glass rounded-2xl overflow-hidden flex flex-col min-h-0">
+            <PanelHeader icon="✅" title="任务" subtitle="待办与已完成" />
+            <div className="flex-1 min-h-0">
+              <TaskList refreshKey={refreshKey} onChange={refresh} />
             </div>
-            <div className="glass rounded-2xl overflow-hidden flex flex-col min-h-0">
-              <PanelHeader icon="📅" title="时间线" subtitle="一天的活动轨迹" />
-              <div className="flex-1 min-h-0">
-                <Timeline refreshKey={refreshKey} />
-              </div>
+          </section>
+
+          {/* Timeline */}
+          <section className="glass rounded-2xl overflow-hidden flex flex-col min-h-0">
+            <PanelHeader icon="📅" title="时间线" subtitle="一天的活动轨迹" />
+            <div className="flex-1 min-h-0">
+              <Timeline refreshKey={refreshKey} />
             </div>
           </section>
         </main>

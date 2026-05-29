@@ -20,11 +20,11 @@ type TaskEvent = {
 type CalData = { activities: Activity[]; tasks: TaskEvent[] };
 
 const CAT: { [k: string]: { bg: string; dot: string; text: string; label: string } } = {
-  work: { bg: "bg-blue-500/85", dot: "bg-blue-400", text: "text-blue-100", label: "工作" },
-  personal: { bg: "bg-violet-500/85", dot: "bg-violet-400", text: "text-violet-100", label: "个人" },
-  health: { bg: "bg-emerald-500/85", dot: "bg-emerald-400", text: "text-emerald-100", label: "健康" },
-  learning: { bg: "bg-amber-500/85", dot: "bg-amber-400", text: "text-amber-100", label: "学习" },
-  general: { bg: "bg-zinc-500/85", dot: "bg-zinc-400", text: "text-zinc-100", label: "其他" },
+  work: { bg: "bg-blue-500", dot: "bg-blue-400", text: "text-blue-100", label: "工作" },
+  personal: { bg: "bg-violet-500", dot: "bg-violet-400", text: "text-violet-100", label: "个人" },
+  health: { bg: "bg-emerald-600", dot: "bg-emerald-400", text: "text-emerald-100", label: "健康" },
+  learning: { bg: "bg-amber-600", dot: "bg-amber-400", text: "text-amber-100", label: "学习" },
+  general: { bg: "bg-zinc-500", dot: "bg-zinc-400", text: "text-zinc-100", label: "其他" },
 };
 const cat = (c: string) => CAT[c] || CAT.general;
 
@@ -220,7 +220,7 @@ function MonthGrid({
                 {tasks.slice(0, shown).map((t) => (
                   <span
                     key={t.id}
-                    className="text-[10px] leading-tight px-1 py-0.5 rounded bg-rose-400/15 text-rose-200 border border-rose-400/25 truncate"
+                    className="text-[10px] leading-tight px-1 py-0.5 rounded bg-rose-500/90 text-white truncate"
                     title={`截止：${t.title}`}
                   >
                     📌 {t.title}
