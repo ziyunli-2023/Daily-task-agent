@@ -18,18 +18,49 @@ const SUGGESTIONS = [
   "我今天有什么安排？",
 ];
 
+const STORAGE_KEY = "daily-assistant-chat";
+const WELCOME: Message = {
+  role: "assistant",
+  content:
+    "你好 👋 我是你的私人助理。你可以告诉我今天做了什么，我帮你记录；或者让我帮你安排任务、设定提醒。",
+  timestamp: new Date(),
+};
+
 export default function ChatInterface({ onDataChange }: Props) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content:
-        "你好 👋 我是你的私人助理。你可以告诉我今天做了什么，我帮你记录；或者让我帮你安排任务、设定提醒。",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const hydrated = useRef(false);
+
+  // Restore saved conversation on mount (after hydration to avoid SSR mismatch).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { role: "user" | "assistant"; content: string; timestamp: string }[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed.map((m) => ({ ...m, timestamp: new Date(m.timestamp) })));
+        }
+      }
+    } catch {}
+    hydrated.current = true;
+  }, []);
+
+  // Persist conversation (capped) whenever it changes.
+  useEffect(() => {
+    if (!hydrated.current) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-100)));
+    } catch {}
+  }, [messages]);
+
+  function clearChat() {
+    setMessages([WELCOME]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -75,7 +106,16 @@ export default function ChatInterface({ onDataChange }: Props) {
   const showSuggestions = messages.length <= 1;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
+      {messages.length > 1 && (
+        <button
+          onClick={clearChat}
+          className="absolute top-2 right-3 z-10 text-[11px] px-2 py-1 rounded-lg text-[var(--text-faint)] bg-[var(--input-bg)] border border-[var(--panel-border)] hover:text-[var(--text)] transition"
+          title="清空对话（任务、记录等数据不受影响）"
+        >
+          清空对话
+        </button>
+      )}
       <div className="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4">
         {messages.map((msg, i) => (
           <div
