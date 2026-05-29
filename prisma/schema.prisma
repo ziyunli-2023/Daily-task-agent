@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id               String    @id @default(uuid())
+  title            String
+  description      String?
+  priority         String    @default("medium") // low | medium | high | urgent
+  status           String    @default("pending") // pending | in_progress | done | cancelled
+  deadline         DateTime?
+  estimatedMinutes Int?
+  tags             String    @default("[]") // JSON array stored as string
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  schedules        Schedule[]
+}
+
+model Record {
+  id          String   @id @default(uuid())
+  rawInput    String
+  summary     String
+  category    String   @default("general") // work | personal | health | learning | general
+  startTime   DateTime
+  endTime     DateTime?
+  energyLevel Int?     // 1-5
+  createdAt   DateTime @default(now())
+}
+
+model Schedule {
+  id             String   @id @default(uuid())
+  taskId         String
+  task           Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  scheduledStart DateTime
+  scheduledEnd   DateTime?
+  remindAt       DateTime?
+  remindSent     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  messages  String   // JSON array of {role, content, timestamp}
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Memory {
+  id         String    @id @default(uuid())
+  key        String    @unique // stable kebab slug for dedup/upsert
+  type       String    // project | preference | habit | person | fact | todo
+  title      String
+  content    String
+  importance Int       @default(3) // 1-5
+  status     String    @default("active") // active | archived
+  sourceDate DateTime? // date of the activity this memory came from
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([type, status])
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  type        String   // daily | weekly
+  periodKey   String   @unique // e.g. "daily:2026-05-29" | "weekly:2026-W22"
+  periodStart DateTime
+  periodEnd   DateTime
+  summary     String   // AI-generated narrative
+  metrics     String   @default("{}") // JSON: computed key numbers
+  generatedBy String   @default("manual") // manual | auto
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type, periodStart])
+}
