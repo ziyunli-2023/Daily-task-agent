@@ -66,10 +66,20 @@ export async function buildRecallContext(): Promise<string> {
         activeTasks
           .map(
             (t) =>
-              `- ${t.title}${t.deadline ? `（截止 ${fmtDate(t.deadline)}）` : ""} [${t.priority}]`
+              `- ${t.title}${t.deadline ? `（截止 ${fmtDate(t.deadline)}）` : ""} [${t.priority}]${t.category ? ` 类别:${t.category}` : ""}${t.project ? ` 项目:${t.project}` : ""}`
           )
           .join("\n")
     );
+
+    const cats = [...new Set(activeTasks.map((t) => t.category).filter(Boolean))];
+    const projs = [...new Set(activeTasks.map((t) => t.project).filter(Boolean))];
+    if (cats.length || projs.length) {
+      parts.push(
+        "## 已有的任务类别 / 项目（新建任务时优先复用这些名字）\n" +
+          `- 类别：${cats.length ? cats.join("、") : "（暂无）"}\n` +
+          `- 项目：${projs.length ? projs.join("、") : "（暂无）"}`
+      );
+    }
   }
 
   if (recentRecords.length) {

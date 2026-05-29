@@ -13,6 +13,8 @@ model Task {
   description      String?
   priority         String    @default("medium") // low | medium | high | urgent
   status           String    @default("pending") // pending | in_progress | done | cancelled
+  category         String?   // free-form custom category, e.g. 工作 / 生活 / 健康
+  project          String?   // project this task belongs to (AI-inferred or manual)
   deadline         DateTime?
   estimatedMinutes Int?
   tags             String    @default("[]") // JSON array stored as string

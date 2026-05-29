@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
           title: String(d.title || ""),
           description: d.description ? String(d.description) : null,
           priority: String(d.priority || "medium"),
+          category: d.category ? String(d.category) : null,
+          project: d.project ? String(d.project) : null,
           deadline: d.deadline ? new Date(String(d.deadline)) : null,
           estimatedMinutes: d.estimatedMinutes ? Number(d.estimatedMinutes) : null,
           tags: JSON.stringify(Array.isArray(d.tags) ? d.tags : []),

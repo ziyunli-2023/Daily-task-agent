@@ -17,10 +17,12 @@ You MUST respond with ONLY a valid JSON object (no markdown, no extra text) in t
 }
 
 For create_record data: { "rawInput": string, "summary": string, "category": string, "startTime": ISO8601, "endTime": ISO8601 (optional), "energyLevel": 1-5 (optional) }
-For create_task data: { "title": string, "description": string (optional), "priority": "low"|"medium"|"high"|"urgent", "deadline": ISO8601 (optional), "estimatedMinutes": number (optional), "tags": string[] }
+For create_task data: { "title": string, "description": string (optional), "priority": "low"|"medium"|"high"|"urgent", "category": string (短中文词，如 工作/生活/健康/学习), "project": string (该任务所属项目名，仅当明显属于某个进行中的项目时填写，否则省略或 null), "deadline": ISO8601 (optional), "estimatedMinutes": number (optional), "tags": string[] }
+
+When assigning a task's category/project, REUSE the user's existing category and project names listed in the background info when they fit, instead of inventing new variants.
 
 If no action is needed (e.g. just answering a question), use a single action with type "none".
-Categories: work, personal, health, learning, general.
+Categories for create_record: work, personal, health, learning, general.
 The current time is given in each message. Infer times from relative expressions like "刚才", "上午", "下午", "明天".`;
 
 export type AIAction =

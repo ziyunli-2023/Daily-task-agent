@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
       title: body.title,
       description: body.description,
       priority: body.priority || "medium",
+      category: body.category || null,
+      project: body.project || null,
       deadline: body.deadline ? new Date(body.deadline) : null,
       estimatedMinutes: body.estimatedMinutes,
       tags: JSON.stringify(body.tags || []),
