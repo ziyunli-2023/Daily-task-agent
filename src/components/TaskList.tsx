@@ -1,19 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-type Task = {
-  id: string;
-  title: string;
-  description?: string;
-  priority: string;
-  status: string;
-  category?: string | null;
-  project?: string | null;
-  deadline?: string;
-  estimatedMinutes?: number;
-  tags: string;
-};
+import TaskModal, { type Task } from "@/components/TaskModal";
 
 const PRIORITY_STYLE: { [k: string]: string } = {
   urgent: "text-rose-300 bg-rose-400/10 border-rose-400/20",
@@ -23,7 +11,6 @@ const PRIORITY_STYLE: { [k: string]: string } = {
 };
 const PRIORITY_LABEL: { [k: string]: string } = { urgent: "紧急", high: "高", medium: "中", low: "低" };
 const PRIORITY_ORDER = ["urgent", "high", "medium", "low"];
-const PRIORITIES = ["low", "medium", "high", "urgent"];
 
 type GroupBy = "category" | "priority" | "project";
 const GROUP_LABEL: { [k in GroupBy]: string } = { category: "类别", priority: "重要性", project: "项目" };
@@ -167,30 +154,36 @@ export default function TaskList({ refreshKey, onChange }: Props) {
                 </span>
                 <div className="flex-1 h-px bg-[var(--line)]" />
               </div>
-              {group.tasks.map((task) =>
-                editId === task.id ? (
-                  <EditTaskRow
-                    key={task.id}
-                    task={task}
-                    cats={allCats}
-                    projects={allProjects}
-                    onSave={saveEdit}
-                    onCancel={() => setEditId(null)}
-                  />
-                ) : (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    groupBy={groupBy}
-                    onToggle={() => toggleDone(task)}
-                    onEdit={() => setEditId(task.id)}
-                    onDelete={() => deleteTask(task.id)}
-                  />
-                )
-              )}
+              {group.tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  groupBy={groupBy}
+                  onToggle={() => toggleDone(task)}
+                  onOpen={() => setEditId(task.id)}
+                  onDelete={() => deleteTask(task.id)}
+                />
+              ))}
             </div>
           ))}
       </div>
+
+      {editId && (() => {
+        const t = tasks.find((x) => x.id === editId);
+        return t ? (
+          <TaskModal
+            task={t}
+            cats={allCats}
+            projects={allProjects}
+            onSave={saveEdit}
+            onDelete={(id) => {
+              deleteTask(id);
+              setEditId(null);
+            }}
+            onClose={() => setEditId(null)}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
@@ -199,25 +192,26 @@ function TaskCard({
   task,
   groupBy,
   onToggle,
-  onEdit,
+  onOpen,
   onDelete,
 }: {
   task: Task;
   groupBy: GroupBy;
   onToggle: () => void;
-  onEdit: () => void;
+  onOpen: () => void;
   onDelete: () => void;
 }) {
   const tags = safeTags(task.tags);
   const overdue = task.deadline && task.status !== "done" && new Date(task.deadline) < new Date();
   return (
     <div
-      className={`group animate-rise rounded-xl border p-3 flex gap-3 items-start transition hover:bg-[var(--surface-hover)] ${
+      onClick={onOpen}
+      className={`group animate-rise rounded-xl border p-3 flex gap-3 items-start transition cursor-pointer hover:bg-[var(--surface-hover)] ${
         overdue ? "border-rose-400/25 bg-rose-400/[0.06]" : "border-[var(--line)] bg-[var(--surface)]"
       }`}
     >
       <button
-        onClick={onToggle}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className={`mt-0.5 w-[18px] h-[18px] rounded-md border flex-shrink-0 grid place-items-center transition ${
           task.status === "done"
             ? "bg-gradient-to-br from-[#4f8ff7] to-[#7c6cf6] border-transparent"
@@ -249,7 +243,13 @@ function TaskCard({
             </span>
           )}
         </div>
+        {task.description && (
+          <p className="text-[11px] text-[var(--text-faint)] mt-1 line-clamp-2 leading-relaxed">{task.description}</p>
+        )}
         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          {task.estimatedMinutes ? (
+            <span className="text-[10px] text-[var(--text-faint)]">⏱ {task.estimatedMinutes}分</span>
+          ) : null}
           {groupBy !== "category" && task.category && (
             <span className="text-[10px] text-[var(--text-dim)] bg-[var(--surface-strong)] px-1.5 py-0.5 rounded-md">
               {task.category}
@@ -283,99 +283,8 @@ function TaskCard({
       </div>
 
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition shrink-0 mt-0.5">
-        <button onClick={onEdit} className="text-[var(--text-faint)] hover:text-[var(--accent)] text-xs" title="编辑">✎</button>
-        <button onClick={onDelete} className="text-[var(--text-faint)] hover:text-rose-400 text-xs" title="删除">✕</button>
-      </div>
-    </div>
-  );
-}
-
-function toLocalInput(iso: string): string {
-  const d = new Date(iso);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-function EditTaskRow({
-  task,
-  cats,
-  projects,
-  onSave,
-  onCancel,
-}: {
-  task: Task;
-  cats: string[];
-  projects: string[];
-  onSave: (id: string, patch: Record<string, unknown>) => void;
-  onCancel: () => void;
-}) {
-  const [title, setTitle] = useState(task.title);
-  const [priority, setPriority] = useState(task.priority);
-  const [category, setCategory] = useState(task.category || "");
-  const [project, setProject] = useState(task.project || "");
-  const [deadline, setDeadline] = useState(task.deadline ? toLocalInput(task.deadline) : "");
-
-  return (
-    <div className="animate-rise rounded-xl border border-[var(--accent)]/40 bg-[var(--surface)] p-3 space-y-2">
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-[13px] text-[var(--text)] outline-none focus:border-[var(--accent)]/50"
-        placeholder="任务标题"
-      />
-      <div className="flex gap-1.5">
-        <input
-          list="cat-suggestions"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="flex-1 min-w-0 bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]/50"
-          placeholder="类别（如 工作/生活）"
-        />
-        <datalist id="cat-suggestions">
-          {cats.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-        <input
-          list="proj-suggestions"
-          value={project}
-          onChange={(e) => setProject(e.target.value)}
-          className="flex-1 min-w-0 bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]/50"
-          placeholder="项目（可空）"
-        />
-        <datalist id="proj-suggestions">
-          {projects.map((p) => (
-            <option key={p} value={p} />
-          ))}
-        </datalist>
-      </div>
-      <div className="flex gap-1.5">
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-          className="bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-xs text-[var(--text-dim)] outline-none"
-        >
-          {PRIORITIES.map((p) => (
-            <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
-          ))}
-        </select>
-        <input
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className="flex-1 min-w-0 bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-[11px] text-[var(--text-dim)] outline-none"
-        />
-      </div>
-      <div className="flex gap-1.5 justify-end">
-        <button onClick={onCancel} className="text-xs px-2.5 py-1 rounded-lg text-[var(--text-faint)] hover:bg-[var(--surface-hover)]">取消</button>
-        <button
-          onClick={() =>
-            onSave(task.id, { title, priority, category: category || null, project: project || null, deadline: deadline || null })
-          }
-          className="text-xs px-2.5 py-1 rounded-lg bg-gradient-to-br from-[#4f8ff7] to-[#7c6cf6] text-white hover:brightness-110"
-        >
-          保存
-        </button>
+        <button onClick={(e) => { e.stopPropagation(); onOpen(); }} className="text-[var(--text-faint)] hover:text-[var(--accent)] text-xs" title="编辑">✎</button>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-[var(--text-faint)] hover:text-rose-400 text-xs" title="删除">✕</button>
       </div>
     </div>
   );

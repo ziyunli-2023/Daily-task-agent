@@ -10,8 +10,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(body.status && { status: body.status }),
       ...(body.title && { title: body.title }),
       ...(body.priority && { priority: body.priority }),
+      ...(body.description !== undefined && { description: body.description || null }),
       ...(body.category !== undefined && { category: body.category || null }),
       ...(body.project !== undefined && { project: body.project || null }),
+      ...(body.estimatedMinutes !== undefined && {
+        estimatedMinutes: body.estimatedMinutes ? Number(body.estimatedMinutes) : null,
+      }),
       ...(body.deadline !== undefined && { deadline: body.deadline ? new Date(body.deadline) : null }),
     },
   });

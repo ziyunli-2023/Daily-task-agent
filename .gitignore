@@ -39,6 +39,9 @@ yarn-error.log*
 *.sqlite
 prisma/*.db
 
+# vestigial nested project shell (Next sometimes regenerates type stubs here)
+/daily-task/
+
 # vercel
 .vercel
 
