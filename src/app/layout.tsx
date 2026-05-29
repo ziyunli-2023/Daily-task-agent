@@ -35,7 +35,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="h-full">{children}</body>
+      <body className="h-full" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
