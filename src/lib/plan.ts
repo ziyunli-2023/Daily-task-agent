@@ -21,10 +21,17 @@ function atToday(hhmm: string): Date | null {
 
 type Block = { taskId: string; title: string; start: string; end: string; priority: string };
 
-export async function getTodayPlan() {
-  const { y, m, d } = todayLocal();
-  const start = new Date(y, m, d, 0, 0, 0);
-  const end = new Date(y, m, d + 1, 0, 0, 0);
+export async function getTodayPlan(dateStr?: string) {
+  let start: Date, end: Date;
+  if (dateStr) {
+    start = new Date(`${dateStr}T00:00:00`);
+    end = new Date(start);
+    end.setDate(end.getDate() + 1);
+  } else {
+    const { y, m, d } = todayLocal();
+    start = new Date(y, m, d, 0, 0, 0);
+    end = new Date(y, m, d + 1, 0, 0, 0);
+  }
   const blocks = await prisma.schedule.findMany({
     where: { kind: "plan", scheduledStart: { gte: start, lt: end } },
     include: { task: true },
