@@ -181,7 +181,7 @@ export default function TaskModal({
                   value={newLink}
                   onChange={(e) => setNewLink(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && newLink.trim()) {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229 && newLink.trim()) {
                       e.preventDefault();
                       setLinks((prev) => [...new Set([...prev, newLink.trim()])]);
                       setNewLink("");

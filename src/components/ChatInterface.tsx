@@ -177,7 +177,9 @@ export default function ChatInterface({ onDataChange }: Props) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              // Don't send while an IME is composing — Enter then confirms the
+              // candidate word, not the message. (isComposing / keyCode 229)
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
                 e.preventDefault();
                 send();
               }
