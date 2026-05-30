@@ -29,7 +29,11 @@ Any URLs in the user's message are automatically captured and stored on the task
 
 If no action is needed (e.g. just answering a question), use a single action with type "none".
 Categories for create_record: work, personal, health, learning, general.
-The current time is given in each message. Infer times from relative expressions like "刚才", "上午", "下午", "明天".`;
+
+时间规则（重要）：每条消息里都给了「当前ISO时间」。
+- 记录活动时，如果用户**没有明确说时间**（比如只说"继续研究X""刚做完Y"），startTime 就直接用消息里的「当前ISO时间」，endTime 留空。**绝不要编造或猜测一个时间**（比如不要凭空写 04:23）。
+- 只有用户**明确提到时间**（"上午9点到11点""下午3点"）时，才据此推算 startTime/endTime。
+- 相对表达（"刚才""明天"）以「当前ISO时间」为基准推算。`;
 
 export type AIAction =
   | { type: "create_record"; data: Record<string, unknown> }

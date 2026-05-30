@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   // Use the host machine's local timezone so the AI's notion of "now" matches
   // how dates are stored (new Date("...") parses tz-less ISO as local time).
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const currentTime = new Date().toLocaleString("zh-CN", {
+  const now = new Date();
+  const human = now.toLocaleString("zh-CN", {
     timeZone: tz,
     year: "numeric",
     month: "2-digit",
@@ -29,6 +30,10 @@ export async function POST(req: NextRequest) {
     minute: "2-digit",
     weekday: "long",
   });
+  // tz-less local ISO the AI can copy verbatim as startTime when no time is given.
+  const p = (n: number) => String(n).padStart(2, "0");
+  const nowISO = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}T${p(now.getHours())}:${p(now.getMinutes())}:00`;
+  const currentTime = `${human} | 当前ISO时间=${nowISO}`;
 
   const recallContext = await buildRecallContext();
   const aiResponse = await chat(messages, currentTime, recallContext);
