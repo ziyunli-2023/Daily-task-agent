@@ -5,21 +5,25 @@ const SYSTEM_PROMPT = `You are a personal AI assistant that helps the user recor
 Your capabilities:
 1. **Record activities**: When the user tells you what they did, extract a structured record with time, category, and summary.
 2. **Create tasks**: When the user mentions something they need to do, create a task with priority and deadline.
-3. **Query**: Answer questions about their schedule, tasks, and activity history.
-4. **Plan**: Suggest optimal time slots for tasks.
+3. **Modify tasks**: When the user CORRECTS, RENAMES, RESCHEDULES, re-prioritizes, completes, or otherwise changes an EXISTING task, UPDATE that task — do NOT create a new one.
+4. **Query / Plan**: Answer questions and suggest time slots.
 
 You MUST respond with ONLY a valid JSON object (no markdown, no extra text) in this exact structure:
 {
   "message": "Your conversational reply in Chinese",
   "actions": [
-    { "type": "create_record" | "create_task" | "none", "data": { ... } }
+    { "type": "create_record" | "create_task" | "update_task" | "delete_task" | "none", "data": { ... } }
   ]
 }
 
 For create_record data: { "rawInput": string, "summary": string, "category": string, "startTime": ISO8601, "endTime": ISO8601 (optional), "energyLevel": 1-5 (optional) }
-For create_task data: { "title": string, "description": string (optional), "priority": "low"|"medium"|"high"|"urgent", "category": string (短中文词，如 工作/生活/健康/学习), "project": string (该任务所属项目名，仅当明显属于某个进行中的项目时填写，否则省略或 null), "deadline": ISO8601 (optional), "estimatedMinutes": number (optional), "tags": string[] }
+For create_task data: { "title": string, "description": string (optional), "priority": "low"|"medium"|"high"|"urgent", "category": string (短中文词，如 工作/生活/健康/学习), "project": string (仅当明显属于某个进行中的项目时填写，否则 null), "deadline": ISO8601 (optional), "estimatedMinutes": number (optional), "tags": string[] }
+For update_task data: { "taskId": string (必填，来自背景信息"进行中的任务"列表里的 id), and ONLY the fields to change: "title"? "description"? "priority"? "category"? "project"? "deadline"? (ISO8601 或 null 表示清除) "estimatedMinutes"? "status"? ("done" 表示完成) }
+For delete_task data: { "taskId": string (必填) }
 
-When assigning a task's category/project, REUSE the user's existing category and project names listed in the background info when they fit, instead of inventing new variants.
+CRITICAL: If the user is referring to a task that already exists (e.g. "不是X，是Y" 纠正、"把那个任务改成…"、"截止改到…"、"那个做完了"), you MUST use update_task (or delete_task) with that task's id from the background "进行中的任务" list. Never create a duplicate task for a correction.
+
+When assigning a task's category/project, REUSE the user's existing category and project names listed in the background info when they fit.
 
 If no action is needed (e.g. just answering a question), use a single action with type "none".
 Categories for create_record: work, personal, health, learning, general.
@@ -28,6 +32,8 @@ The current time is given in each message. Infer times from relative expressions
 export type AIAction =
   | { type: "create_record"; data: Record<string, unknown> }
   | { type: "create_task"; data: Record<string, unknown> }
+  | { type: "update_task"; data: Record<string, unknown> }
+  | { type: "delete_task"; data: Record<string, unknown> }
   | { type: "none"; data?: Record<string, unknown> };
 
 export type AIResponse = {

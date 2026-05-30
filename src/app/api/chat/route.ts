@@ -61,6 +61,45 @@ export async function POST(req: NextRequest) {
           },
         });
       }
+    } else if (action.type === "update_task") {
+      const d = action.data;
+      const taskId = d.taskId ? String(d.taskId) : "";
+      const existing = taskId ? await prisma.task.findUnique({ where: { id: taskId } }) : null;
+      if (existing) {
+        await prisma.task.update({
+          where: { id: taskId },
+          data: {
+            ...(d.title !== undefined && { title: String(d.title) }),
+            ...(d.description !== undefined && { description: d.description ? String(d.description) : null }),
+            ...(d.priority !== undefined && { priority: String(d.priority) }),
+            ...(d.category !== undefined && { category: d.category ? String(d.category) : null }),
+            ...(d.project !== undefined && { project: d.project ? String(d.project) : null }),
+            ...(d.status !== undefined && { status: String(d.status) }),
+            ...(d.estimatedMinutes !== undefined && {
+              estimatedMinutes: d.estimatedMinutes ? Number(d.estimatedMinutes) : null,
+            }),
+            ...(d.deadline !== undefined && {
+              deadline: d.deadline ? new Date(String(d.deadline)) : null,
+            }),
+          },
+        });
+        // If the deadline changed, refresh the reminder schedule.
+        if (d.deadline !== undefined) {
+          await prisma.schedule.deleteMany({ where: { taskId, remindSent: false } });
+          if (d.deadline) {
+            const dl = new Date(String(d.deadline));
+            const remindAt = new Date(dl.getTime() - 30 * 60 * 1000);
+            await prisma.schedule.create({
+              data: { taskId, scheduledStart: dl, remindAt: remindAt > new Date() ? remindAt : null },
+            });
+          }
+        }
+      }
+    } else if (action.type === "delete_task") {
+      const taskId = action.data.taskId ? String(action.data.taskId) : "";
+      if (taskId) {
+        await prisma.task.deleteMany({ where: { id: taskId } });
+      }
     }
   }
 

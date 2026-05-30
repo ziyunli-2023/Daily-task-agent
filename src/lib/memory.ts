@@ -62,11 +62,11 @@ export async function buildRecallContext(): Promise<string> {
 
   if (activeTasks.length) {
     parts.push(
-      "## 进行中的任务\n" +
+      "## 进行中的任务（修改/完成/删除任务时，用对应的 id）\n" +
         activeTasks
           .map(
             (t) =>
-              `- ${t.title}${t.deadline ? `（截止 ${fmtDate(t.deadline)}）` : ""} [${t.priority}]${t.category ? ` 类别:${t.category}` : ""}${t.project ? ` 项目:${t.project}` : ""}`
+              `- (id: ${t.id}) ${t.title}${t.deadline ? `（截止 ${fmtDate(t.deadline)}）` : ""} [${t.priority}]${t.category ? ` 类别:${t.category}` : ""}${t.project ? ` 项目:${t.project}` : ""}`
           )
           .join("\n")
     );
