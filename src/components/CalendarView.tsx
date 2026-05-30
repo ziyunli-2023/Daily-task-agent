@@ -276,6 +276,10 @@ type PendingTask = {
 
 const HOUR = 56; // px per hour
 const SNAP = 15; // minutes
+const START_HOUR = 9; // planner window start (09:00)
+const END_HOUR = 18; // planner window end (18:00)
+const VIS_START = START_HOUR * 60;
+const VIS_END = END_HOUR * 60;
 
 function laneLayout(blocks: PlanBlock[]) {
   const items = blocks
@@ -354,13 +358,13 @@ function DayPlanner({
     load();
   }, [load, refreshKey]);
 
-  // Scroll to ~8:00 on open.
+  // The 9–18 window fits without scrolling; keep it at the top.
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 8 * HOUR - 16;
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [dateStr]);
 
-  // ---- time/position helpers ----
-  const snap = (m: number) => Math.max(0, Math.min(24 * 60, Math.round(m / SNAP) * SNAP));
+  // ---- time/position helpers (grid spans VIS_START..VIS_END) ----
+  const snap = (m: number) => Math.max(VIS_START, Math.min(VIS_END, Math.round(m / SNAP) * SNAP));
   const minOf = (iso: string) => {
     const d = new Date(iso);
     return d.getHours() * 60 + d.getMinutes();
@@ -371,9 +375,11 @@ function DayPlanner({
     d.setMinutes(mins);
     return d.toISOString();
   };
+  const TOP_PAD = 10; // room so the 09:00 label isn't clipped
+  const topOf = (min: number) => ((min - VIS_START) / 60) * HOUR + TOP_PAD;
   const yToMin = (clientY: number) => {
     const rect = gridRef.current!.getBoundingClientRect();
-    return snap(((clientY - rect.top) / HOUR) * 60);
+    return snap(VIS_START + ((clientY - rect.top - TOP_PAD) / HOUR) * 60);
   };
 
   // ---- drag move / resize (pointer capture) ----
@@ -395,10 +401,10 @@ function DayPlanner({
         if (b.id !== d.id) return b;
         if (d.mode === "move") {
           const dur = d.origEnd - d.origStart;
-          const ns = Math.max(0, Math.min(24 * 60 - dur, snap(d.origStart + raw)));
+          const ns = Math.max(VIS_START, Math.min(VIS_END - dur, snap(d.origStart + raw)));
           return { ...b, start: isoAt(ns), end: isoAt(ns + dur) };
         } else {
-          const ne = Math.max(d.origStart + SNAP, Math.min(24 * 60, snap(d.origEnd + raw)));
+          const ne = Math.max(d.origStart + SNAP, Math.min(VIS_END, snap(d.origEnd + raw)));
           return { ...b, end: isoAt(ne) };
         }
       })
@@ -509,34 +515,37 @@ function DayPlanner({
         <div
           ref={gridRef}
           className="relative"
-          style={{ height: 24 * HOUR }}
+          style={{ height: (END_HOUR - START_HOUR) * HOUR + TOP_PAD + 8 }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={onDropTask}
         >
-          {Array.from({ length: 24 }, (_, h) => (
-            <div key={h} className="absolute left-0 right-0 border-t border-[var(--panel-border)]" style={{ top: h * HOUR }}>
-              <span className="absolute -top-2 left-2 text-[12px] font-medium text-[var(--text-dim)] tabular-nums">
-                {String(h).padStart(2, "0")}:00
-              </span>
-            </div>
-          ))}
+          {Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
+            const h = START_HOUR + i;
+            return (
+              <div key={h} className="absolute left-0 right-0 border-t border-[var(--panel-border)]" style={{ top: topOf(h * 60) }}>
+                <span className="absolute -top-2 left-2 text-[12px] font-medium text-[var(--text-dim)] tabular-nums">
+                  {String(h).padStart(2, "0")}:00
+                </span>
+              </div>
+            );
+          })}
 
           {/* lunch hint 12-13 */}
-          <div className="absolute left-12 right-2 bg-[var(--surface-strong)]/40 rounded" style={{ top: 12 * HOUR, height: HOUR }} />
+          <div className="absolute left-12 right-2 bg-[var(--surface-strong)]/40 rounded" style={{ top: topOf(12 * 60), height: HOUR }} />
 
-          {isToday && (
-            <div className="absolute left-12 right-2 z-30 pointer-events-none" style={{ top: (nowMin / 60) * HOUR }}>
+          {isToday && nowMin >= VIS_START && nowMin <= VIS_END && (
+            <div className="absolute left-12 right-2 z-30 pointer-events-none" style={{ top: topOf(nowMin) }}>
               <div className="h-px bg-rose-500 relative">
                 <div className="absolute -left-1 -top-1 w-2 h-2 rounded-full bg-rose-500" />
               </div>
             </div>
           )}
 
-          {/* deadline markers */}
-          {deadlines.map((t) => {
+          {/* deadline markers (only those within the visible window) */}
+          {deadlines.filter((t) => minOf(t.deadline) >= VIS_START && minOf(t.deadline) <= VIS_END).map((t) => {
             const min = minOf(t.deadline);
             return (
-              <div key={t.id} className="absolute left-12 right-2 z-10 pointer-events-none" style={{ top: (min / 60) * HOUR }}>
+              <div key={t.id} className="absolute left-12 right-2 z-10 pointer-events-none" style={{ top: topOf(min) }}>
                 <div className="flex items-center gap-1 -translate-y-1/2">
                   <div className="flex-1 border-t border-dashed border-rose-400/50" />
                   <span className="text-[11px] px-1.5 py-0.5 rounded bg-rose-500/90 text-white whitespace-nowrap">📌 {t.title} 截止</span>
@@ -548,7 +557,7 @@ function DayPlanner({
           {/* plan blocks */}
           <div className="absolute left-12 right-2 top-0 bottom-0">
             {laid.map(({ b, startMin, endMin, lane, lanes }) => {
-              const top = (startMin / 60) * HOUR;
+              const top = topOf(startMin);
               const height = Math.max(22, ((endMin - startMin) / 60) * HOUR - 2);
               const widthPct = 100 / lanes;
               const done = b.status === "done";
