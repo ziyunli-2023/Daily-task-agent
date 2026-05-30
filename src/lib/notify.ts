@@ -17,9 +17,16 @@ export async function fireDueReminders(windowMs = 60_000): Promise<number> {
 
   for (const schedule of due) {
     const when = schedule.scheduledStart
-      ? ` — ${schedule.scheduledStart.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`
+      ? schedule.scheduledStart.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
       : "";
-    sendNotification("⏰ 任务提醒", `${schedule.task.title}${when}`);
+    if (schedule.kind === "plan") {
+      const endStr = schedule.scheduledEnd
+        ? `–${schedule.scheduledEnd.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`
+        : "";
+      sendNotification("🗓️ 现在该做", `${schedule.task.title}（${when}${endStr}）`);
+    } else {
+      sendNotification("⏰ 任务提醒", `${schedule.task.title}${when ? ` — ${when}` : ""}`);
+    }
     await prisma.schedule.update({
       where: { id: schedule.id },
       data: { remindSent: true },

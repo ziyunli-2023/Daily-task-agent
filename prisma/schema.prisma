@@ -39,11 +39,14 @@ model Schedule {
   id             String   @id @default(uuid())
   taskId         String
   task           Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  kind           String   @default("reminder") // reminder (deadline) | plan (time block)
   scheduledStart DateTime
   scheduledEnd   DateTime?
   remindAt       DateTime?
   remindSent     Boolean  @default(false)
   createdAt      DateTime @default(now())
+
+  @@index([kind, scheduledStart])
 }
 
 model Conversation {
