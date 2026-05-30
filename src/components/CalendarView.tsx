@@ -187,7 +187,7 @@ function MonthGrid({
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="grid grid-cols-7 border-b border-[var(--panel-border)] shrink-0">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="text-center text-[13px] text-[var(--text-faint)] py-1.5">
+          <div key={w} className="text-center text-[14px] font-semibold text-[var(--text-dim)] py-1.5">
             {w}
           </div>
         ))}
@@ -210,8 +210,8 @@ function MonthGrid({
               } ${i % 7 === 6 ? "border-r-0" : ""}`}
             >
               <span
-                className={`text-[13px] w-5 h-5 grid place-items-center rounded-full shrink-0 ${
-                  isToday ? "bg-gradient-to-br from-[#4f8ff7] to-[#7c6cf6] text-white font-semibold" : "text-[var(--text-dim)]"
+                className={`text-[14px] w-6 h-6 grid place-items-center rounded-full shrink-0 font-semibold ${
+                  isToday ? "bg-gradient-to-br from-[#4f8ff7] to-[#7c6cf6] text-white" : "text-[var(--text)]"
                 }`}
               >
                 {d.getDate()}
@@ -220,7 +220,7 @@ function MonthGrid({
                 {tasks.slice(0, shown).map((t) => (
                   <span
                     key={t.id}
-                    className="text-[12px] leading-tight px-1 py-0.5 rounded bg-rose-500/90 text-white truncate"
+                    className="text-[13px] font-medium leading-snug px-1 py-0.5 rounded bg-rose-500 text-white truncate"
                     title={`截止：${t.title}`}
                   >
                     📌 {t.title}
@@ -229,14 +229,14 @@ function MonthGrid({
                 {acts.slice(0, Math.max(0, shown - tasks.length)).map((a) => (
                   <span
                     key={a.id}
-                    className={`text-[12px] leading-tight px-1 py-0.5 rounded text-white truncate ${cat(a.category).bg}`}
+                    className={`text-[13px] font-medium leading-snug px-1 py-0.5 rounded text-white truncate ${cat(a.category).bg}`}
                     title={a.title}
                   >
                     {a.title}
                   </span>
                 ))}
                 {items > shown && (
-                  <span className="text-[12px] text-[var(--text-faint)] pl-1">+{items - shown}</span>
+                  <span className="text-[12px] font-medium text-[var(--text-dim)] pl-1">+{items - shown}</span>
                 )}
               </div>
             </button>
@@ -291,7 +291,7 @@ function layout(acts: Activity[]): Laid[] {
 }
 
 function DayGrid({ cursor, today, data }: { cursor: Date; today: Date; data: CalData }) {
-  const HOUR = 52; // px per hour
+  const HOUR = 60; // px per hour
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const dayActs = useMemo(
@@ -319,7 +319,7 @@ function DayGrid({ cursor, today, data }: { cursor: Date; today: Date; data: Cal
         {/* Hour lines + labels */}
         {Array.from({ length: 24 }, (_, h) => (
           <div key={h} className="absolute left-0 right-0 border-t border-[var(--panel-border)]" style={{ top: h * HOUR }}>
-            <span className="absolute -top-2 left-2 text-[12px] text-[var(--text-faint)] tabular-nums">
+            <span className="absolute -top-2 left-2 text-[12px] font-medium text-[var(--text-dim)] tabular-nums">
               {String(h).padStart(2, "0")}:00
             </span>
           </div>
@@ -348,9 +348,9 @@ function DayGrid({ cursor, today, data }: { cursor: Date; today: Date; data: Cal
                 style={{ top, height, left: `${lane * widthPct}%`, width: `calc(${widthPct}% - 3px)` }}
                 title={`${ev.title} ${hm(ev.start)}${ev.end ? `–${hm(ev.end)}` : ""}`}
               >
-                <p className="text-[13px] font-medium text-white leading-tight truncate">{ev.title}</p>
+                <p className="text-[13px] font-semibold text-white leading-snug truncate">{ev.title}</p>
                 {height > 28 && (
-                  <p className="text-[12px] text-white/75 leading-tight">
+                  <p className="text-[12px] font-medium text-white/90 leading-snug">
                     {hm(ev.start)}
                     {ev.end ? `–${hm(ev.end)}` : ""}
                   </p>
@@ -368,7 +368,7 @@ function DayGrid({ cursor, today, data }: { cursor: Date; today: Date; data: Cal
             <div key={t.id} className="absolute left-12 right-2 z-10" style={{ top: (min / 60) * HOUR }}>
               <div className="flex items-center gap-1 -translate-y-1/2">
                 <div className="flex-1 border-t border-dashed border-rose-400/60" />
-                <span className="text-[12px] px-1.5 py-0.5 rounded bg-rose-500/90 text-white whitespace-nowrap shadow-sm">
+                <span className="text-[12px] font-medium px-1.5 py-0.5 rounded bg-rose-500 text-white whitespace-nowrap shadow-sm">
                   📌 {t.title} 截止 {hm(t.deadline)}
                 </span>
               </div>

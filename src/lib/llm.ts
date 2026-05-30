@@ -8,21 +8,8 @@ let _backends: Backend[] | null = null;
 function buildBackends(): Backend[] {
   const backends: Backend[] = [];
 
-  // Preferred: DeepSeek official API (cheap, reliable, not rate-limited).
-  // Set DEEPSEEK_API_KEY to enable. OpenAI-compatible at api.deepseek.com.
-  if (process.env.DEEPSEEK_API_KEY) {
-    const deepseek = new OpenAI({
-      baseURL: "https://api.deepseek.com",
-      apiKey: process.env.DEEPSEEK_API_KEY,
-    });
-    backends.push({
-      client: deepseek,
-      model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
-      label: "deepseek-official",
-    });
-  }
-
-  // OpenRouter free models — primary + fallbacks, tried in order on error/429.
+  // Preferred: OpenRouter FREE models — tried first to avoid any cost.
+  // primary + fallbacks, each tried in order on error/429.
   if (process.env.OPENROUTER_API_KEY) {
     const openrouter = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
@@ -45,6 +32,20 @@ function buildBackends(): Backend[] {
     }
   }
 
+  // Last-resort fallback: DeepSeek official API (paid, reliable, not rate-limited).
+  // Only reached when every free model above failed/was rate-limited.
+  if (process.env.DEEPSEEK_API_KEY) {
+    const deepseek = new OpenAI({
+      baseURL: "https://api.deepseek.com",
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    });
+    backends.push({
+      client: deepseek,
+      model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+      label: "deepseek-official",
+    });
+  }
+
   return backends;
 }
 
@@ -65,9 +66,13 @@ export async function chatWithFallback(params: ChatParams): Promise<string> {
     try {
       const completion = await b.client.chat.completions.create({ ...params, model: b.model });
       const text = completion.choices[0]?.message?.content;
-      if (text && text.trim()) return text;
+      if (text && text.trim()) {
+        console.log(`[llm] ✓ ${b.label}`);
+        return text;
+      }
     } catch (e) {
       lastErr = e;
+      console.log(`[llm] ✗ ${b.label} — ${(e as Error)?.message?.slice(0, 80) || "failed"}`);
     }
   }
   throw lastErr ?? new Error("all LLM backends failed");
