@@ -8,8 +8,20 @@ let _backends: Backend[] | null = null;
 function buildBackends(): Backend[] {
   const backends: Backend[] = [];
 
-  // Preferred: OpenRouter FREE models — tried first to avoid any cost.
-  // primary + fallbacks, each tried in order on error/429.
+  // Primary: DeepSeek official API — deepseek-v4-flash (reliable, not rate-limited).
+  if (process.env.DEEPSEEK_API_KEY) {
+    const deepseek = new OpenAI({
+      baseURL: "https://api.deepseek.com",
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    });
+    backends.push({
+      client: deepseek,
+      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+      label: "deepseek-official",
+    });
+  }
+
+  // Fallback: OpenRouter free models, tried in order if DeepSeek fails.
   if (process.env.OPENROUTER_API_KEY) {
     const openrouter = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
@@ -30,20 +42,6 @@ function buildBackends(): Backend[] {
     for (const model of models) {
       backends.push({ client: openrouter, model, label: `openrouter:${model}` });
     }
-  }
-
-  // Last-resort fallback: DeepSeek official API (paid, reliable, not rate-limited).
-  // Only reached when every free model above failed/was rate-limited.
-  if (process.env.DEEPSEEK_API_KEY) {
-    const deepseek = new OpenAI({
-      baseURL: "https://api.deepseek.com",
-      apiKey: process.env.DEEPSEEK_API_KEY,
-    });
-    backends.push({
-      client: deepseek,
-      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
-      label: "deepseek-official",
-    });
   }
 
   return backends;
