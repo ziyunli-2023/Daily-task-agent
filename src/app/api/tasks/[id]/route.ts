@@ -16,6 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(body.estimatedMinutes !== undefined && {
         estimatedMinutes: body.estimatedMinutes ? Number(body.estimatedMinutes) : null,
       }),
+      ...(body.links !== undefined && { links: JSON.stringify(body.links || []) }),
       ...(body.deadline !== undefined && { deadline: body.deadline ? new Date(body.deadline) : null }),
     },
   });

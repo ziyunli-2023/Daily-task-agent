@@ -30,8 +30,8 @@ export default function Home() {
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     Promise.all([
-      fetch("/api/tasks?status=pending").then((r) => r.json()),
-      fetch(`/api/records?date=${today}`).then((r) => r.json()),
+      fetch("/api/tasks?status=pending", { cache: "no-store" }).then((r) => r.json()),
+      fetch(`/api/records?date=${today}`, { cache: "no-store" }).then((r) => r.json()),
     ])
       .then(([tasks, records]) => {
         setStats({

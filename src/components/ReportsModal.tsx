@@ -57,7 +57,7 @@ export default function ReportsModal({ open, onClose }: { open: boolean; onClose
   const loadReport = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/reports?type=${type}&date=${date}`).then((x) => x.json());
+      const r = await fetch(`/api/reports?type=${type}&date=${date}`, { cache: "no-store" }).then((x) => x.json());
       setReport(r || null);
     } finally {
       setLoading(false);
@@ -65,7 +65,7 @@ export default function ReportsModal({ open, onClose }: { open: boolean; onClose
   }, [type, date]);
 
   const loadHistory = useCallback(async () => {
-    const h = await fetch(`/api/reports?type=${type}`).then((x) => x.json());
+    const h = await fetch(`/api/reports?type=${type}`, { cache: "no-store" }).then((x) => x.json());
     setHistory(Array.isArray(h) ? h : []);
   }, [type]);
 

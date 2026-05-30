@@ -26,7 +26,7 @@ export default function TaskList({ refreshKey, onChange }: Props) {
 
   function reload() {
     setLoading(true);
-    fetch(`/api/tasks?status=${filter}`)
+    fetch(`/api/tasks?status=${filter}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setTasks(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));
@@ -202,6 +202,9 @@ function TaskCard({
   onDelete: () => void;
 }) {
   const tags = safeTags(task.tags);
+  const taskLinks = safeTags(task.links || "[]");
+  const linkCount = taskLinks.length;
+  const firstLink = taskLinks[0] || "#";
   const overdue = task.deadline && task.status !== "done" && new Date(task.deadline) < new Date();
   return (
     <div
@@ -259,6 +262,18 @@ function TaskCard({
             <span className="text-[10px] text-violet-300 bg-violet-400/10 px-1.5 py-0.5 rounded-md">
               ◆ {task.project}
             </span>
+          )}
+          {linkCount > 0 && (
+            <a
+              href={firstLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-[10px] text-[var(--accent-2)] bg-[var(--accent-2)]/10 px-1.5 py-0.5 rounded-md hover:underline"
+              title={firstLink}
+            >
+              🔗 {linkCount > 1 ? `${linkCount} 个链接` : "链接"}
+            </a>
           )}
           {task.deadline && (
             <span

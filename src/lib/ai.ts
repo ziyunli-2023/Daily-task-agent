@@ -25,6 +25,8 @@ CRITICAL: If the user is referring to a task that already exists (e.g. "不是X�
 
 When assigning a task's category/project, REUSE the user's existing category and project names listed in the background info when they fit.
 
+Any URLs in the user's message are automatically captured and stored on the task — do NOT try to reproduce long URLs in the title or description; keep those short and human-readable.
+
 If no action is needed (e.g. just answering a question), use a single action with type "none".
 Categories for create_record: work, personal, health, learning, general.
 The current time is given in each message. Infer times from relative expressions like "刚才", "上午", "下午", "明天".`;

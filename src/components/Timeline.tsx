@@ -36,7 +36,7 @@ export default function Timeline({ refreshKey, onChange }: Props) {
 
   function reload() {
     setLoading(true);
-    fetch(`/api/records?date=${date}`)
+    fetch(`/api/records?date=${date}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setRecords(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));

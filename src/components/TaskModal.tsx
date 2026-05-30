@@ -13,7 +13,17 @@ export type Task = {
   deadline?: string | null;
   estimatedMinutes?: number | null;
   tags: string;
+  links?: string;
 };
+
+function parseLinks(raw?: string): string[] {
+  try {
+    const v = JSON.parse(raw || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
 
 const PRIORITY_LABEL: { [k: string]: string } = { urgent: "紧急", high: "高", medium: "中", low: "低" };
 const PRIORITIES = ["low", "medium", "high", "urgent"];
@@ -46,6 +56,8 @@ export default function TaskModal({
   const [project, setProject] = useState(task.project || "");
   const [deadline, setDeadline] = useState(task.deadline ? toLocalInput(task.deadline) : "");
   const [estimated, setEstimated] = useState(task.estimatedMinutes ? String(task.estimatedMinutes) : "");
+  const [links, setLinks] = useState<string[]>(parseLinks(task.links));
+  const [newLink, setNewLink] = useState("");
 
   const field =
     "w-full bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-3 py-2 text-[13px] text-[var(--text)] outline-none focus:border-[var(--accent)]/50";
@@ -139,6 +151,59 @@ export default function TaskModal({
             <label className={label}>截止时间</label>
             <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className={field} />
           </div>
+
+          <div>
+            <label className={label}>链接（{links.length}）</label>
+            <div className="space-y-1.5">
+              {links.map((url, i) => (
+                <div key={i} className="flex items-center gap-2 bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2.5 py-1.5">
+                  <span className="text-xs">🔗</span>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-0 text-[12px] text-[var(--accent-2)] hover:underline break-all"
+                    title={url}
+                  >
+                    {url}
+                  </a>
+                  <button
+                    onClick={() => setLinks((prev) => prev.filter((_, j) => j !== i))}
+                    className="text-[var(--text-faint)] hover:text-rose-400 text-xs shrink-0"
+                    title="移除"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-1.5">
+                <input
+                  value={newLink}
+                  onChange={(e) => setNewLink(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newLink.trim()) {
+                      e.preventDefault();
+                      setLinks((prev) => [...new Set([...prev, newLink.trim()])]);
+                      setNewLink("");
+                    }
+                  }}
+                  className={field}
+                  placeholder="粘贴链接后回车添加"
+                />
+                <button
+                  onClick={() => {
+                    if (newLink.trim()) {
+                      setLinks((prev) => [...new Set([...prev, newLink.trim()])]);
+                      setNewLink("");
+                    }
+                  }}
+                  className="text-xs px-3 rounded-lg bg-[var(--surface-strong)] text-[var(--text-dim)] hover:text-[var(--text)] transition shrink-0"
+                >
+                  添加
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="px-5 py-3.5 border-t border-[var(--panel-border)] flex items-center justify-between shrink-0">
@@ -165,6 +230,7 @@ export default function TaskModal({
                   project: project || null,
                   estimatedMinutes: estimated ? Number(estimated) : null,
                   deadline: deadline || null,
+                  links,
                 })
               }
               className="text-xs font-medium px-4 py-1.5 rounded-lg bg-gradient-to-br from-[#4f8ff7] to-[#7c6cf6] text-white hover:brightness-110 transition shadow-lg shadow-indigo-500/15"

@@ -32,7 +32,7 @@ export default function MemoryModal({ open, onClose }: { open: boolean; onClose:
     setLoading(true);
     try {
       const url = filter === "all" ? "/api/memories" : `/api/memories?type=${filter}`;
-      const d = await fetch(url).then((r) => r.json());
+      const d = await fetch(url, { cache: "no-store" }).then((r) => r.json());
       setMemories(Array.isArray(d) ? d : []);
     } finally {
       setLoading(false);

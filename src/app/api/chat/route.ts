@@ -3,8 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { chat } from "@/lib/ai";
 import { buildRecallContext } from "@/lib/memory";
 
+// Pull every full URL out of text (stops at whitespace, trims trailing punctuation).
+function extractUrls(text: string): string[] {
+  const matches = text.match(/https?:\/\/[^\s]+/g) || [];
+  return [...new Set(matches.map((u) => u.replace(/[.,;。，；）)】]+$/, "")))];
+}
+
 export async function POST(req: NextRequest) {
   const { messages, conversationId } = await req.json();
+
+  // URLs from the user's latest message — attached verbatim to any task created/updated,
+  // so links are never lost to AI summarization/truncation.
+  const lastUser = [...(messages || [])].reverse().find((m: { role: string }) => m.role === "user");
+  const userUrls = lastUser ? extractUrls(String(lastUser.content || "")) : [];
 
   // Use the host machine's local timezone so the AI's notion of "now" matches
   // how dates are stored (new Date("...") parses tz-less ISO as local time).
@@ -38,6 +49,9 @@ export async function POST(req: NextRequest) {
       });
     } else if (action.type === "create_task") {
       const d = action.data;
+      // Merge any URLs the AI passed with the ones extracted from the user message.
+      const aiLinks = Array.isArray(d.links) ? d.links.map(String) : [];
+      const links = [...new Set([...aiLinks, ...userUrls])];
       const task = await prisma.task.create({
         data: {
           title: String(d.title || ""),
@@ -48,6 +62,7 @@ export async function POST(req: NextRequest) {
           deadline: d.deadline ? new Date(String(d.deadline)) : null,
           estimatedMinutes: d.estimatedMinutes ? Number(d.estimatedMinutes) : null,
           tags: JSON.stringify(Array.isArray(d.tags) ? d.tags : []),
+          links: JSON.stringify(links),
         },
       });
       // Auto-schedule reminder if deadline exists
@@ -66,6 +81,15 @@ export async function POST(req: NextRequest) {
       const taskId = d.taskId ? String(d.taskId) : "";
       const existing = taskId ? await prisma.task.findUnique({ where: { id: taskId } }) : null;
       if (existing) {
+        // Merge any new URLs from this message into the task's existing links.
+        let mergedLinks: string | undefined;
+        if (userUrls.length) {
+          let prev: string[] = [];
+          try {
+            prev = JSON.parse(existing.links || "[]");
+          } catch {}
+          mergedLinks = JSON.stringify([...new Set([...prev, ...userUrls])]);
+        }
         await prisma.task.update({
           where: { id: taskId },
           data: {
@@ -81,6 +105,7 @@ export async function POST(req: NextRequest) {
             ...(d.deadline !== undefined && {
               deadline: d.deadline ? new Date(String(d.deadline)) : null,
             }),
+            ...(mergedLinks !== undefined && { links: mergedLinks }),
           },
         });
         // If the deadline changed, refresh the reminder schedule.

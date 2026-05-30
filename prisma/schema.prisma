@@ -18,6 +18,7 @@ model Task {
   deadline         DateTime?
   estimatedMinutes Int?
   tags             String    @default("[]") // JSON array stored as string
+  links            String    @default("[]") // JSON array of full URLs captured from the conversation
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   schedules        Schedule[]

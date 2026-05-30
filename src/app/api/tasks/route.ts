@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       deadline: body.deadline ? new Date(body.deadline) : null,
       estimatedMinutes: body.estimatedMinutes,
       tags: JSON.stringify(body.tags || []),
+      links: JSON.stringify(body.links || []),
     },
   });
   return NextResponse.json(task);
