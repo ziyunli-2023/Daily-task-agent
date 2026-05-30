@@ -181,6 +181,7 @@ function PlanView({ refreshKey, onChange }: { refreshKey: number; onChange?: () 
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [planning, setPlanning] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
@@ -190,6 +191,34 @@ function PlanView({ refreshKey, onChange }: { refreshKey: number; onChange?: () 
       .finally(() => setLoading(false));
   }
   useEffect(load, [refreshKey]);
+
+  // Build an ISO timestamp for today at HH:MM.
+  function isoToday(hhmm: string): string {
+    const [h, m] = hhmm.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h || 0, m || 0, 0, 0);
+    return d.toISOString();
+  }
+
+  async function saveTime(b: Block, startHM: string, endHM: string) {
+    setEditId(null);
+    await fetch(`/api/plan/${b.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scheduledStart: isoToday(startHM),
+        scheduledEnd: endHM ? isoToday(endHM) : null,
+      }),
+    });
+    load();
+    onChange?.();
+  }
+
+  async function removeBlock(b: Block) {
+    setBlocks((prev) => prev.filter((x) => x.id !== b.id));
+    await fetch(`/api/plan/${b.id}`, { method: "DELETE" });
+    onChange?.();
+  }
 
   async function generate() {
     setPlanning(true);
@@ -250,10 +279,13 @@ function PlanView({ refreshKey, onChange }: { refreshKey: number; onChange?: () 
         <div className="space-y-2">
           {blocks.map((b) => {
             const active = b.end ? new Date(b.start) <= now && now < new Date(b.end) : false;
+            if (editId === b.id) {
+              return <PlanEditRow key={b.id} b={b} onSave={saveTime} onCancel={() => setEditId(null)} />;
+            }
             return (
               <div
                 key={b.id}
-                className={`flex gap-3 items-start rounded-xl border p-2.5 animate-rise transition ${
+                className={`group flex gap-3 items-start rounded-xl border p-2.5 animate-rise transition ${
                   active ? "border-[var(--accent)]/50 bg-[var(--accent)]/[0.06]" : "border-[var(--line)] bg-[var(--surface)]"
                 }`}
               >
@@ -282,12 +314,75 @@ function PlanView({ refreshKey, onChange }: { refreshKey: number; onChange?: () 
                   </span>
                   {active && <span className="ml-1.5 text-[10px] text-[var(--accent)]">进行中</span>}
                 </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                  <button onClick={() => setEditId(b.id)} className="text-[var(--text-faint)] hover:text-[var(--accent)] text-xs" title="改时间">✎</button>
+                  <button onClick={() => removeBlock(b)} className="text-[var(--text-faint)] hover:text-rose-400 text-xs" title="移除">✕</button>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
     </>
+  );
+}
+
+type PlanBlockT = {
+  id: string;
+  taskId: string;
+  title: string;
+  priority: string;
+  status: string;
+  category?: string | null;
+  start: string;
+  end: string | null;
+};
+
+function toHM(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function PlanEditRow({
+  b,
+  onSave,
+  onCancel,
+}: {
+  b: PlanBlockT;
+  onSave: (b: PlanBlockT, startHM: string, endHM: string) => void;
+  onCancel: () => void;
+}) {
+  const [start, setStart] = useState(toHM(b.start));
+  const [end, setEnd] = useState(b.end ? toHM(b.end) : "");
+  return (
+    <div className="rounded-xl border border-[var(--accent)]/40 bg-[var(--surface)] p-2.5 animate-rise space-y-2">
+      <span className="text-[13px] font-medium text-[var(--text)]">{b.title}</span>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="time"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          className="bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]/50"
+        />
+        <span className="text-[var(--text-faint)] text-xs">–</span>
+        <input
+          type="time"
+          value={end}
+          onChange={(e) => setEnd(e.target.value)}
+          className="bg-[var(--input-bg)] border border-[var(--line)] rounded-lg px-2 py-1 text-xs text-[var(--text)] outline-none focus:border-[var(--accent)]/50"
+        />
+      </div>
+      <div className="flex gap-1.5 justify-end">
+        <button onClick={onCancel} className="text-xs px-2.5 py-1 rounded-lg text-[var(--text-faint)] hover:bg-[var(--surface-hover)]">取消</button>
+        <button
+          onClick={() => onSave(b, start, end)}
+          className="text-xs px-2.5 py-1 rounded-lg bg-gradient-to-br from-[#4f8ff7] to-[#7c6cf6] text-white hover:brightness-110"
+        >
+          保存
+        </button>
+      </div>
+    </div>
   );
 }
 
