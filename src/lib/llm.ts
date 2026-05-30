@@ -41,7 +41,7 @@ function buildBackends(): Backend[] {
     });
     backends.push({
       client: deepseek,
-      model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+      model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
       label: "deepseek-official",
     });
   }
